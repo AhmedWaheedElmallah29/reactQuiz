@@ -1,9 +1,8 @@
-function App() {
+import DateCounter from "./DateCounter";
+export default function App() {
   return (
     <>
-      <h2>ahmed</h2>
+      <DateCounter />
     </>
   );
 }
-
-export default App;
