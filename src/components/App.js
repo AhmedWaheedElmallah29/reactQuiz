@@ -8,6 +8,10 @@ import Question from "./Question";
 import NextButton from "./NextButton";
 import Progress from "./Progress";
 import Finished from "./Finished";
+import Footer from "./Footer";
+import Timer from "./Timer";
+
+const SECS_PER_QUESTION = 30;
 
 const initialState = {
   questions: [],
@@ -18,13 +22,19 @@ const initialState = {
   answer: null,
   points: 0,
   highscore: 0,
+  seconds: 10,
 };
+
 function reducer(state, action) {
   switch (action.type) {
     case "dataReceived":
       return { ...state, questions: action.payload, status: "ready" };
     case "start":
-      return { ...state, status: "active" };
+      return {
+        ...state,
+        status: "active",
+        seconds: state.questions.length * SECS_PER_QUESTION,
+      };
     case "dataFailed":
       return { ...state, status: "error" };
     case "newAnswer":
@@ -46,14 +56,28 @@ function reducer(state, action) {
         highscore:
           state.points > state.highscore ? state.points : state.highscore,
       };
+    case "restart":
+      return {
+        ...initialState,
+        questions: state.questions,
+        status: "ready",
+      };
+    case "tick":
+      return {
+        ...state,
+        seconds: state.seconds - 1,
+        status: state.seconds === 0 ? "finished" : state.status,
+      };
     default:
       throw new Error("Action unKnown");
   }
 }
 
 export default function App() {
-  const [{ questions, status, index, answer, points, highscore }, dispatch] =
-    useReducer(reducer, initialState);
+  const [
+    { questions, status, index, answer, points, highscore, seconds },
+    dispatch,
+  ] = useReducer(reducer, initialState);
 
   const numQuestions = questions.length;
   const maxPoint = questions.reduce((pre, cur) => pre + cur.points, 0);
@@ -63,6 +87,7 @@ export default function App() {
       .then((data) => dispatch({ type: "dataReceived", payload: data }))
       .catch((err) => dispatch({ type: "dataFailed" }));
   }, []);
+
   return (
     <div className="app">
       <Header />
@@ -87,16 +112,24 @@ export default function App() {
               answer={answer}
               points={points}
             />
-            <NextButton
-              index={index}
-              numQuestions={numQuestions}
-              dispatch={dispatch}
-              answer={answer}
-            />
+            <Footer>
+              <Timer dispatch={dispatch} seconds={seconds} />
+              <NextButton
+                index={index}
+                numQuestions={numQuestions}
+                dispatch={dispatch}
+                answer={answer}
+              />
+            </Footer>
           </>
         )}
         {status === "finished" && (
-          <Finished maxPoint={maxPoint} points={points} highscore={highscore} />
+          <Finished
+            dispatch={dispatch}
+            maxPoint={maxPoint}
+            points={points}
+            highscore={highscore}
+          />
         )}
       </Main>
     </div>
